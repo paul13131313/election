@@ -1528,10 +1528,6 @@ function ConfirmScreen({ votes, district, blockId, onConfirm, onReset, onBack })
 
 function ResultScreen({ votes, district, blockId, onRestart }) {
   const [show, setShow] = useState(false);
-  const [shareMode, setShareMode] = useState(false);
-  const [comment, setComment] = useState("");
-  const [imageBlob, setImageBlob] = useState(null);
-  const [imageUrl, setImageUrl] = useState(null);
   const [generating, setGenerating] = useState(false);
   const cardRef = React.useRef(null);
   useEffect(() => { setTimeout(() => setShow(true), 100); }, []);
@@ -1541,8 +1537,8 @@ function ResultScreen({ votes, district, blockId, onRestart }) {
   const judges = ELECTION_DATA.supreme_court_review.judges;
   const siteUrl = "https://paul13131313.github.io/election/";
 
-  const generateImage = async () => {
-    if (!cardRef.current) return;
+  const handleShareOrSave = async () => {
+    if (!cardRef.current || generating) return;
     setGenerating(true);
     try {
       const canvas = await html2canvas(cardRef.current, {
@@ -1552,47 +1548,29 @@ function ResultScreen({ votes, district, blockId, onRestart }) {
         logging: false,
       });
       const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
-      setImageBlob(blob);
-      setImageUrl(canvas.toDataURL("image/png"));
+      const shareText = "#衆院選2026 #投票シミュレーション\n" + siteUrl;
+
+      if (navigator.share) {
+        const file = new File([blob], "election-result.png", { type: "image/png" });
+        try {
+          await navigator.share({ text: shareText, files: [file] });
+          setGenerating(false);
+          return;
+        } catch (e) {
+          if (e.name === "AbortError") { setGenerating(false); return; }
+          try { await navigator.share({ text: shareText, url: siteUrl }); setGenerating(false); return; } catch (_) {}
+        }
+      }
+
+      const dataUrl = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = "election-result.png";
+      a.click();
     } catch (e) {
       console.error(e);
     }
     setGenerating(false);
-  };
-
-  const handleShare = async () => {
-    const shareText = (comment ? comment + "\n\n" : "") + "#衆院選2026 #投票シミュレーション\n" + siteUrl;
-    if (navigator.share && imageBlob) {
-      const file = new File([imageBlob], "election-result.png", { type: "image/png" });
-      try {
-        await navigator.share({ text: shareText, files: [file] });
-        return;
-      } catch (e) {
-        if (e.name !== "AbortError") {
-          try { await navigator.share({ text: shareText }); } catch (_) {}
-        }
-      }
-    } else if (navigator.share) {
-      try { await navigator.share({ text: shareText }); } catch (_) {}
-    } else {
-      await navigator.clipboard?.writeText(shareText);
-      alert("テキストをコピーしました。画像は長押しまたは右クリックで保存できます。");
-    }
-  };
-
-  const handleSaveImage = () => {
-    if (!imageUrl) return;
-    const a = document.createElement("a");
-    a.href = imageUrl;
-    a.download = "election-result.png";
-    a.click();
-  };
-
-  const openShareMode = async () => {
-    setShareMode(true);
-    setTimeout(async () => {
-      await generateImage();
-    }, 100);
   };
 
   return (
@@ -1640,11 +1618,6 @@ function ResultScreen({ votes, district, blockId, onRestart }) {
               ))}
             </div>
           </div>
-          {comment && (
-            <div style={{ marginTop: 14, padding: "10px 14px", background: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
-              <div style={{ fontSize: 13, color: "#fff", lineHeight: 1.6, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{comment}</div>
-            </div>
-          )}
           <div style={{ textAlign: "center", marginTop: 14 }}>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{siteUrl}</div>
           </div>
@@ -1666,78 +1639,18 @@ function ResultScreen({ votes, district, blockId, onRestart }) {
           ))}
         </div>
 
-        {!shareMode ? (
-          <>
-            <button
-              onClick={openShareMode}
-              className="w-full py-3 rounded-xl font-bold text-sm mb-2"
-              style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
-            >
-              結果をシェアする
-            </button>
-            <button onClick={onRestart} className="w-full py-3 text-sm font-bold" style={{ color: "#a8c4f0" }}>
-              もう一度投票する
-            </button>
-          </>
-        ) : (
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-bold block mb-2" style={{ color: "#a8c4f0" }}>コメントを追加（任意）</label>
-              <textarea
-                value={comment}
-                onChange={(e) => { setComment(e.target.value); setImageBlob(null); setImageUrl(null); }}
-                placeholder="ひとことコメントを入力..."
-                rows={3}
-                className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none"
-                style={{ background: "rgba(255,255,255,0.12)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", caretColor: "#fff" }}
-              />
-            </div>
+        <button
+          onClick={handleShareOrSave}
+          disabled={generating}
+          className="w-full py-3.5 rounded-xl font-bold text-sm mb-2 transition-all active:scale-95"
+          style={{ background: generating ? "rgba(255,255,255,0.08)" : "#fff", color: generating ? "rgba(255,255,255,0.5)" : "#1e50a2" }}
+        >
+          {generating ? "画像を生成中..." : "画像を保存/シェアする"}
+        </button>
 
-            {!imageUrl && (
-              <button
-                onClick={generateImage}
-                disabled={generating}
-                className="w-full py-3 rounded-xl font-bold text-sm"
-                style={{ background: generating ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.15)", color: "#fff" }}
-              >
-                {generating ? "画像を生成中..." : "シェア画像を生成する"}
-              </button>
-            )}
-
-            {imageUrl && (
-              <div className="space-y-3">
-                <div className="text-xs font-bold" style={{ color: "#a8c4f0" }}>プレビュー</div>
-                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.15)" }}>
-                  <img src={imageUrl} alt="シェア画像" className="w-full" />
-                </div>
-
-                <button
-                  onClick={handleShare}
-                  className="w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
-                  style={{ background: "#fff", color: "#1e50a2" }}
-                >
-                  SNSでシェアする
-                </button>
-
-                <button
-                  onClick={handleSaveImage}
-                  className="w-full py-3 rounded-xl font-bold text-sm"
-                  style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
-                >
-                  画像を保存する
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={() => { setShareMode(false); setImageBlob(null); setImageUrl(null); }}
-              className="w-full py-3 text-sm font-bold"
-              style={{ color: "#a8c4f0" }}
-            >
-              戻る
-            </button>
-          </div>
-        )}
+        <button onClick={onRestart} className="w-full py-3 text-sm font-bold" style={{ color: "#a8c4f0" }}>
+          もう一度投票する
+        </button>
 
         <p className="text-center text-xs mt-6" style={{ color: "rgba(255,255,255,0.3)" }}>
           ※ これは模擬投票です。実際の選挙結果には影響しません。
