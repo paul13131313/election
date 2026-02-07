@@ -17,6 +17,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 * { -webkit-tap-highlight-color: transparent; }
 body { margin: 0; font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif; -webkit-font-smoothing: antialiased; }
@@ -1085,6 +1086,19 @@ const STATUS_LABEL = { "前職": "bg-red-100 text-red-800", "元職": "bg-yellow
 
 const STEPS = ["小選挙区", "比例代表", "国民審査"];
 
+function BackButton({ onClick, light }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 text-sm font-bold transition-all active:scale-95 py-2 px-1"
+      style={{ color: light ? "rgba(255,255,255,0.7)" : "#8c8578" }}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      戻る
+    </button>
+  );
+}
+
 function ProgressBar({ current }) {
   return (
     <div style={{ background: "#f0ebe3" }} className="px-4 py-3 border-b border-stone-300">
@@ -1164,13 +1178,14 @@ function TopScreen({ onStart }) {
 
 const BLOCK_ORDER = ["hokkaido","tohoku","hokuriku_shinetsu","kitakanto","tokyo","minami_kanto","tokai","kinki","chugoku","shikoku","kyushu"];
 
-function BlockSelectScreen({ onSelect }) {
+function BlockSelectScreen({ onSelect, onBack }) {
   const blocks = BLOCK_ORDER.filter(k => ELECTION_DATA.blocks[k]).map(k => ELECTION_DATA.blocks[k]);
   return (
     <div className="min-h-screen" style={{ background: "#f7f3ed" }}>
-      <div className="px-4 py-5 text-center border-b" style={{ background: "#fff", borderColor: "#d6cfc4" }}>
-        <h2 className="text-lg font-black" style={{ color: "#1a1a1a" }}>投票するブロックを選んでください</h2>
-        <p className="text-xs mt-1" style={{ color: "#8c8578" }}>現在対応：{blocks.length}ブロック</p>
+      <div className="px-4 pt-3 pb-4 border-b" style={{ background: "#fff", borderColor: "#d6cfc4" }}>
+        <BackButton onClick={onBack} />
+        <h2 className="text-lg font-black text-center" style={{ color: "#1a1a1a" }}>投票するブロックを選んでください</h2>
+        <p className="text-xs mt-1 text-center" style={{ color: "#8c8578" }}>現在対応：{blocks.length}ブロック</p>
       </div>
       <div className="max-w-lg mx-auto p-4 space-y-2">
         {blocks.map(b => (
@@ -1191,16 +1206,17 @@ function BlockSelectScreen({ onSelect }) {
   );
 }
 
-function DistrictSelectScreen({ onSelect, blockId }) {
+function DistrictSelectScreen({ onSelect, blockId, onBack }) {
   const [selected, setSelected] = useState(null);
   const block = ELECTION_DATA.blocks[blockId];
   const groups = block.districtGroups;
 
   return (
     <div className="min-h-screen" style={{ background: "#f7f3ed" }}>
-      <div className="px-4 py-5 text-center border-b" style={{ background: "#fff", borderColor: "#d6cfc4" }}>
-        <h2 className="text-lg font-black" style={{ color: "#1a1a1a" }}>あなたの選挙区を選んでください</h2>
-        <p className="text-xs mt-1" style={{ color: "#8c8578" }}>{block.label} 全{block.districts.length}選挙区</p>
+      <div className="px-4 pt-3 pb-4 border-b" style={{ background: "#fff", borderColor: "#d6cfc4" }}>
+        <BackButton onClick={onBack} />
+        <h2 className="text-lg font-black text-center" style={{ color: "#1a1a1a" }}>あなたの選挙区を選んでください</h2>
+        <p className="text-xs mt-1 text-center" style={{ color: "#8c8578" }}>{block.label} 全{block.districts.length}選挙区</p>
       </div>
       <div className="max-w-lg mx-auto p-4 space-y-5 pb-28">
         {groups.map(g => (
@@ -1284,7 +1300,7 @@ function CandidateCard({ c, isSelected, onSelect }) {
   );
 }
 
-function DistrictVoteScreen({ district, blockId, onVote }) {
+function DistrictVoteScreen({ district, blockId, onVote, onBack }) {
   const [selected, setSelected] = useState(null);
   const block = ELECTION_DATA.blocks[blockId];
   const d = block.districts.find(x => x.number === district);
@@ -1292,10 +1308,11 @@ function DistrictVoteScreen({ district, blockId, onVote }) {
   return (
     <div className="min-h-screen" style={{ background: "#f7f3ed" }}>
       <ProgressBar current={0} />
-      <div className="px-4 py-4 text-center" style={{ background: "#fff", borderBottom: "1px solid #d6cfc4" }}>
-        <div className="text-xs font-bold tracking-widest mb-1" style={{ color: "#1e50a2" }}>STEP 1 ─ 小選挙区</div>
-        <h2 className="text-xl font-black" style={{ color: "#1a1a1a" }}>{d.name}</h2>
-        <p className="text-xs mt-0.5" style={{ color: "#8c8578" }}>{d.area}</p>
+      <div className="px-4 pt-2 pb-4" style={{ background: "#fff", borderBottom: "1px solid #d6cfc4" }}>
+        <BackButton onClick={onBack} />
+        <div className="text-xs font-bold tracking-widest mb-1 text-center" style={{ color: "#1e50a2" }}>STEP 1 ─ 小選挙区</div>
+        <h2 className="text-xl font-black text-center" style={{ color: "#1a1a1a" }}>{d.name}</h2>
+        <p className="text-xs mt-0.5 text-center" style={{ color: "#8c8578" }}>{d.area}</p>
       </div>
       <div className="max-w-lg mx-auto p-4 space-y-2 pb-28">
         <p className="text-xs px-1 mb-2" style={{ color: "#8c8578" }}>候補者から1名を選んでください（届出順）</p>
@@ -1318,7 +1335,7 @@ function DistrictVoteScreen({ district, blockId, onVote }) {
   );
 }
 
-function ProportionalVoteScreen({ blockId, onVote }) {
+function ProportionalVoteScreen({ blockId, onVote, onBack }) {
   const [selected, setSelected] = useState(null);
   const block = ELECTION_DATA.blocks[blockId];
   const parties = block.proportional.parties;
@@ -1326,10 +1343,11 @@ function ProportionalVoteScreen({ blockId, onVote }) {
   return (
     <div className="min-h-screen" style={{ background: "#f7f3ed" }}>
       <ProgressBar current={1} />
-      <div className="px-4 py-4 text-center" style={{ background: "#fff", borderBottom: "1px solid #d6cfc4" }}>
-        <div className="text-xs font-bold tracking-widest mb-1" style={{ color: "#1e50a2" }}>STEP 2 ─ 比例代表</div>
-        <h2 className="text-xl font-black" style={{ color: "#1a1a1a" }}>{block.proportional.block}</h2>
-        <p className="text-xs mt-0.5" style={{ color: "#8c8578" }}>定数{block.proportional.seats}議席 ─ 政党から1つ選んでください</p>
+      <div className="px-4 pt-2 pb-4" style={{ background: "#fff", borderBottom: "1px solid #d6cfc4" }}>
+        <BackButton onClick={onBack} />
+        <div className="text-xs font-bold tracking-widest mb-1 text-center" style={{ color: "#1e50a2" }}>STEP 2 ─ 比例代表</div>
+        <h2 className="text-xl font-black text-center" style={{ color: "#1a1a1a" }}>{block.proportional.block}</h2>
+        <p className="text-xs mt-0.5 text-center" style={{ color: "#8c8578" }}>定数{block.proportional.seats}議席 ─ 政党から1つ選んでください</p>
       </div>
       <div className="max-w-lg mx-auto p-4 space-y-2 pb-28">
         {parties.map(p => {
@@ -1376,7 +1394,7 @@ function ProportionalVoteScreen({ blockId, onVote }) {
   );
 }
 
-function ReviewScreen({ onVote }) {
+function ReviewScreen({ onVote, onBack }) {
   const judges = ELECTION_DATA.supreme_court_review.judges;
   const [dismiss, setDismiss] = useState({});
 
@@ -1385,10 +1403,11 @@ function ReviewScreen({ onVote }) {
   return (
     <div className="min-h-screen" style={{ background: "#f7f3ed" }}>
       <ProgressBar current={2} />
-      <div className="px-4 py-4 text-center" style={{ background: "#fff", borderBottom: "1px solid #d6cfc4" }}>
-        <div className="text-xs font-bold tracking-widest mb-1" style={{ color: "#1e50a2" }}>STEP 3 ─ 国民審査</div>
-        <h2 className="text-xl font-black" style={{ color: "#1a1a1a" }}>最高裁判所裁判官</h2>
-        <p className="text-xs mt-0.5" style={{ color: "#8c8578" }}>国民審査</p>
+      <div className="px-4 pt-2 pb-4" style={{ background: "#fff", borderBottom: "1px solid #d6cfc4" }}>
+        <BackButton onClick={onBack} />
+        <div className="text-xs font-bold tracking-widest mb-1 text-center" style={{ color: "#1e50a2" }}>STEP 3 ─ 国民審査</div>
+        <h2 className="text-xl font-black text-center" style={{ color: "#1a1a1a" }}>最高裁判所裁判官</h2>
+        <p className="text-xs mt-0.5 text-center" style={{ color: "#8c8578" }}>国民審査</p>
       </div>
       <div className="max-w-lg mx-auto p-4">
         <div className="rounded-xl p-4 mb-4" style={{ background: "#fff", border: "1px solid #d6cfc4" }}>
@@ -1444,7 +1463,7 @@ function ReviewScreen({ onVote }) {
   );
 }
 
-function ConfirmScreen({ votes, district, blockId, onConfirm, onReset }) {
+function ConfirmScreen({ votes, district, blockId, onConfirm, onReset, onBack }) {
   const block = ELECTION_DATA.blocks[blockId];
   const d = block.districts.find(x => x.number === district);
   const candidate = d.candidates.find(c => c.name === votes.district);
@@ -1453,6 +1472,7 @@ function ConfirmScreen({ votes, district, blockId, onConfirm, onReset }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: "#f7f3ed" }}>
       <div className="max-w-md w-full">
+        <div className="mb-2"><BackButton onClick={onBack} /></div>
         <div className="text-center mb-6">
           <h2 className="text-xl font-black" style={{ color: "#1a1a1a" }}>投票内容の確認</h2>
           <p className="text-xs mt-1" style={{ color: "#8c8578" }}>以下の内容でよろしいですか？</p>
@@ -1508,13 +1528,72 @@ function ConfirmScreen({ votes, district, blockId, onConfirm, onReset }) {
 
 function ResultScreen({ votes, district, blockId, onRestart }) {
   const [show, setShow] = useState(false);
+  const [shareMode, setShareMode] = useState(false);
+  const [comment, setComment] = useState("");
+  const [imageBlob, setImageBlob] = useState(null);
+  const [imageUrl, setImageUrl] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const cardRef = React.useRef(null);
   useEffect(() => { setTimeout(() => setShow(true), 100); }, []);
   const block = ELECTION_DATA.blocks[blockId];
   const d = block.districts.find(x => x.number === district);
   const candidate = d.candidates.find(c => c.name === votes.district);
   const judges = ELECTION_DATA.supreme_court_review.judges;
+  const siteUrl = "https://paul13131313.github.io/election/";
 
-  const shareText = `第51回衆院選シミュレーションで投票しました！\n#衆院選2026 #投票シミュレーション`;
+  const generateImage = async () => {
+    if (!cardRef.current) return;
+    setGenerating(true);
+    try {
+      const canvas = await html2canvas(cardRef.current, {
+        scale: 2,
+        backgroundColor: null,
+        useCORS: true,
+        logging: false,
+      });
+      const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+      setImageBlob(blob);
+      setImageUrl(canvas.toDataURL("image/png"));
+    } catch (e) {
+      console.error(e);
+    }
+    setGenerating(false);
+  };
+
+  const handleShare = async () => {
+    const shareText = (comment ? comment + "\n\n" : "") + "#衆院選2026 #投票シミュレーション\n" + siteUrl;
+    if (navigator.share && imageBlob) {
+      const file = new File([imageBlob], "election-result.png", { type: "image/png" });
+      try {
+        await navigator.share({ text: shareText, files: [file] });
+        return;
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          try { await navigator.share({ text: shareText }); } catch (_) {}
+        }
+      }
+    } else if (navigator.share) {
+      try { await navigator.share({ text: shareText }); } catch (_) {}
+    } else {
+      await navigator.clipboard?.writeText(shareText);
+      alert("テキストをコピーしました。画像は長押しまたは右クリックで保存できます。");
+    }
+  };
+
+  const handleSaveImage = () => {
+    if (!imageUrl) return;
+    const a = document.createElement("a");
+    a.href = imageUrl;
+    a.download = "election-result.png";
+    a.click();
+  };
+
+  const openShareMode = async () => {
+    setShareMode(true);
+    setTimeout(async () => {
+      await generateImage();
+    }, 100);
+  };
 
   return (
     <div className="min-h-screen p-6" style={{ background: "linear-gradient(180deg, #1e50a2 0%, #152d5a 100%)" }}>
@@ -1525,40 +1604,54 @@ function ResultScreen({ votes, district, blockId, onRestart }) {
           <p className="text-sm" style={{ color: "#a8c4f0" }}>あなたの一票が投じられました</p>
         </div>
 
-        <div className="space-y-3 mb-6">
-          <div className="rounded-xl p-4" style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}>
-            <div className="text-xs font-bold mb-2" style={{ color: "#a8c4f0" }}>小選挙区 ─ {d.name}</div>
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-8 rounded-full" style={{ background: getPartyColor(candidate?.party) }} />
-              <div>
-                <div className="text-base font-black text-white">{votes.district}</div>
-                <div className="text-xs" style={{ color: "#a8c4f0" }}>{candidate?.party}</div>
+        {/* Share card - captured by html2canvas */}
+        <div ref={cardRef} style={{ background: "linear-gradient(180deg, #1e50a2 0%, #152d5a 100%)", borderRadius: 16, padding: 24, paddingBottom: 16 }}>
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: "#a8c4f0", letterSpacing: 2, fontWeight: 700, marginBottom: 4 }}>第51回 衆議院議員総選挙</div>
+            <div style={{ fontSize: 18, color: "#fff", fontWeight: 900 }}>投票結果</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ background: "rgba(255,255,255,0.12)", borderRadius: 12, padding: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#a8c4f0", marginBottom: 6 }}>小選挙区 ─ {d.name}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 4, height: 32, borderRadius: 4, background: getPartyColor(candidate?.party) }} />
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{votes.district}</div>
+                  <div style={{ fontSize: 11, color: "#a8c4f0" }}>{candidate?.party}</div>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="rounded-xl p-4" style={{ background: "rgba(255,255,255,0.12)" }}>
-            <div className="text-xs font-bold mb-2" style={{ color: "#a8c4f0" }}>比例代表 ─ {block.proportional.block}</div>
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-8 rounded-full" style={{ background: getPartyColor(votes.proportional) }} />
-              <div className="text-base font-black text-white">{votes.proportional}</div>
+            <div style={{ background: "rgba(255,255,255,0.12)", borderRadius: 12, padding: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#a8c4f0", marginBottom: 6 }}>比例代表 ─ {block.proportional.block}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 4, height: 32, borderRadius: 4, background: getPartyColor(votes.proportional) }} />
+                <div style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>{votes.proportional}</div>
+              </div>
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.12)", borderRadius: 12, padding: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#a8c4f0", marginBottom: 6 }}>国民審査</div>
+              {judges.map(j => (
+                <div key={j.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0" }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{j.name}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: votes.review[j.name] ? "#ff8a8a" : "#6ee7b7" }}>
+                    {votes.review[j.name] ? "✕ 罷免" : "○ 信任"}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
-
-          <div className="rounded-xl p-4" style={{ background: "rgba(255,255,255,0.12)" }}>
-            <div className="text-xs font-bold mb-2" style={{ color: "#a8c4f0" }}>国民審査</div>
-            {judges.map(j => (
-              <div key={j.name} className="flex items-center justify-between py-1">
-                <span className="text-sm font-bold text-white">{j.name}</span>
-                <span className="text-sm font-bold" style={{ color: votes.review[j.name] ? "#ff8a8a" : "#6ee7b7" }}>
-                  {votes.review[j.name] ? "✕ 罷免" : "○ 信任"}
-                </span>
-              </div>
-            ))}
+          {comment && (
+            <div style={{ marginTop: 14, padding: "10px 14px", background: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
+              <div style={{ fontSize: 13, color: "#fff", lineHeight: 1.6, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{comment}</div>
+            </div>
+          )}
+          <div style={{ textAlign: "center", marginTop: 14 }}>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{siteUrl}</div>
           </div>
         </div>
 
-        <div className="rounded-xl p-4 mb-6" style={{ background: "rgba(255,255,255,0.08)" }}>
+        {/* Candidate list (outside share card) */}
+        <div className="rounded-xl p-4 mt-4 mb-6" style={{ background: "rgba(255,255,255,0.08)" }}>
           <div className="text-xs font-bold mb-2" style={{ color: "#a8c4f0" }}>{d.name} 全候補者</div>
           {d.candidates.map(c => (
             <div key={c.name} className="flex items-center justify-between py-1.5 border-b border-white border-opacity-10 last:border-0">
@@ -1573,23 +1666,78 @@ function ResultScreen({ votes, district, blockId, onRestart }) {
           ))}
         </div>
 
-        <button
-          onClick={() => {
-            if (navigator.share) {
-              navigator.share({ text: shareText }).catch(() => {});
-            } else {
-              navigator.clipboard?.writeText(shareText);
-            }
-          }}
-          className="w-full py-3 rounded-xl font-bold text-sm mb-2"
-          style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
-        >
-          結果をシェア 📤
-        </button>
+        {!shareMode ? (
+          <>
+            <button
+              onClick={openShareMode}
+              className="w-full py-3 rounded-xl font-bold text-sm mb-2"
+              style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
+            >
+              結果をシェアする
+            </button>
+            <button onClick={onRestart} className="w-full py-3 text-sm font-bold" style={{ color: "#a8c4f0" }}>
+              もう一度投票する
+            </button>
+          </>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-bold block mb-2" style={{ color: "#a8c4f0" }}>コメントを追加（任意）</label>
+              <textarea
+                value={comment}
+                onChange={(e) => { setComment(e.target.value); setImageBlob(null); setImageUrl(null); }}
+                placeholder="ひとことコメントを入力..."
+                rows={3}
+                className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none"
+                style={{ background: "rgba(255,255,255,0.12)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", caretColor: "#fff" }}
+              />
+            </div>
 
-        <button onClick={onRestart} className="w-full py-3 text-sm font-bold" style={{ color: "#a8c4f0" }}>
-          もう一度投票する
-        </button>
+            {!imageUrl && (
+              <button
+                onClick={generateImage}
+                disabled={generating}
+                className="w-full py-3 rounded-xl font-bold text-sm"
+                style={{ background: generating ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.15)", color: "#fff" }}
+              >
+                {generating ? "画像を生成中..." : "シェア画像を生成する"}
+              </button>
+            )}
+
+            {imageUrl && (
+              <div className="space-y-3">
+                <div className="text-xs font-bold" style={{ color: "#a8c4f0" }}>プレビュー</div>
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.15)" }}>
+                  <img src={imageUrl} alt="シェア画像" className="w-full" />
+                </div>
+
+                <button
+                  onClick={handleShare}
+                  className="w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
+                  style={{ background: "#fff", color: "#1e50a2" }}
+                >
+                  SNSでシェアする
+                </button>
+
+                <button
+                  onClick={handleSaveImage}
+                  className="w-full py-3 rounded-xl font-bold text-sm"
+                  style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
+                >
+                  画像を保存する
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={() => { setShareMode(false); setImageBlob(null); setImageUrl(null); }}
+              className="w-full py-3 text-sm font-bold"
+              style={{ color: "#a8c4f0" }}
+            >
+              戻る
+            </button>
+          </div>
+        )}
 
         <p className="text-center text-xs mt-6" style={{ color: "rgba(255,255,255,0.3)" }}>
           ※ これは模擬投票です。実際の選挙結果には影響しません。
@@ -1616,17 +1764,17 @@ function ElectionSimulator() {
     case "top":
       return <TopScreen onStart={() => setStep("block")} />;
     case "block":
-      return <BlockSelectScreen onSelect={(id) => { setBlockId(id); setStep("select"); }} />;
+      return <BlockSelectScreen onSelect={(id) => { setBlockId(id); setStep("select"); }} onBack={() => setStep("top")} />;
     case "select":
-      return <DistrictSelectScreen blockId={blockId} onSelect={(n) => { setDistrict(n); setStep("vote_district"); }} />;
+      return <DistrictSelectScreen blockId={blockId} onSelect={(n) => { setDistrict(n); setStep("vote_district"); }} onBack={() => setStep("block")} />;
     case "vote_district":
-      return <DistrictVoteScreen district={district} blockId={blockId} onVote={(name) => { setVotes(v => ({ ...v, district: name })); setStep("vote_proportional"); }} />;
+      return <DistrictVoteScreen district={district} blockId={blockId} onVote={(name) => { setVotes(v => ({ ...v, district: name })); setStep("vote_proportional"); }} onBack={() => setStep("select")} />;
     case "vote_proportional":
-      return <ProportionalVoteScreen blockId={blockId} onVote={(party) => { setVotes(v => ({ ...v, proportional: party })); setStep("vote_review"); }} />;
+      return <ProportionalVoteScreen blockId={blockId} onVote={(party) => { setVotes(v => ({ ...v, proportional: party })); setStep("vote_review"); }} onBack={() => setStep("vote_district")} />;
     case "vote_review":
-      return <ReviewScreen onVote={(review) => { setVotes(v => ({ ...v, review })); setStep("confirm"); }} />;
+      return <ReviewScreen onVote={(review) => { setVotes(v => ({ ...v, review })); setStep("confirm"); }} onBack={() => setStep("vote_proportional")} />;
     case "confirm":
-      return <ConfirmScreen votes={votes} district={district} blockId={blockId} onConfirm={() => setStep("result")} onReset={reset} />;
+      return <ConfirmScreen votes={votes} district={district} blockId={blockId} onConfirm={() => setStep("result")} onReset={reset} onBack={() => setStep("vote_review")} />;
     case "result":
       return <ResultScreen votes={votes} district={district} blockId={blockId} onRestart={reset} />;
     default:
